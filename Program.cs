@@ -30,7 +30,8 @@ var mqttFactory = new MqttFactory(new MqttConsoleLogger());
 using var mqttClient = mqttFactory.CreateMqttClient();
 
 var mqttClientOptions = new MqttClientOptionsBuilder()
-    .WithTcpServer("192.168.35.21", 1883)
+    //.WithTcpServer("192.168.35.21", 1883)
+    .WithTcpServer("dd0227a3-b4b3-4af6-add0-330c446d4400.k8s.civo.com", 30007)
     .WithClientId("RoboArm")
     .WithCredentials("MyUsername", "MyPassword")
     .Build();
@@ -53,15 +54,10 @@ mqttClient.ApplicationMessageReceivedAsync += e =>
 await mqttClient.ConnectAsync(mqttClientOptions, CancellationToken.None);
 
 var mqttSubscribeOptions = mqttFactory.CreateSubscribeOptionsBuilder()
-    .WithTopicFilter(
-        f =>
-        {
-            f.WithTopic("servo/+");
-        })
+    .WithTopicFilter("servo/+")
     .Build();
 
 var sub = await mqttClient.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None);
-
 
 
 const decimal MaxAxisMovement = 32767;
