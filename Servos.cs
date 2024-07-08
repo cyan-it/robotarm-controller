@@ -1,4 +1,7 @@
 public enum Servos
 {
-    Base
+    Base,
+    Left,
+    Right,
+    Gripper
 }

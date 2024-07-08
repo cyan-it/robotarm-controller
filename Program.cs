@@ -9,6 +9,9 @@ Console.WriteLine("Hello, World!");
 using var servoManager = new ServoManager();
 
 using var baseServo = servoManager.ConnectServo(0);
+using var leftServo = servoManager.ConnectServo(1);
+using var rightServo = servoManager.ConnectServo(2);
+using var gripperServo = servoManager.ConnectServo(3);
 
 using var gamepad = new GamepadController("/dev/input/js0");
 // gamepad.ButtonChanged += (_, e) =>
@@ -46,6 +49,15 @@ mqttClient.ApplicationMessageReceivedAsync += e =>
         case Servos.Base:
             baseServo.QueueMoveTo(angle);
             break;
+        case Servos.Left:
+            leftServo.QueueMoveTo(angle);
+            break;
+        case Servos.Right:
+            rightServo.QueueMoveTo(angle);
+            break;
+        case Servos.Gripper:
+            gripperServo.QueueMoveTo(angle);
+            break;
     }
 
     return Task.CompletedTask;
@@ -65,37 +77,44 @@ const decimal MaxAxisMovement = 32767;
 gamepad.ButtonChanged += (o, e) =>
 {
     var button = (GamepadButtons?)e.Button;
-    switch (button)
+    
+    if (!e.Pressed)
     {
-        case GamepadButtons.Circle:
-        case GamepadButtons.Triangle:
-            if (!e.Pressed)
-            {
-                baseServo.EndMovement();
-                break;
-            }
-
-            baseServo.BeginOrContinueMovement(0.5m, button == GamepadButtons.Circle ? ServoDirection.Right : ServoDirection.Left);
-            break;
+        gripperServo.EndMovement();
+        return;
     }
+
+    gripperServo.BeginOrContinueMovement(0.5m, button == GamepadButtons.RightTop ? ServoDirection.Left : ServoDirection.Right);
 };
 
 gamepad.AxisChanged += (o, e) =>
 {
+    var value = e.Value;
+    Servo servo;
     switch ((GamepadJoysticks?)e.Axis)
     {
         case GamepadJoysticks.LeftHorizontal:
-            if (e.Value == 0)
-            {
-                baseServo.EndMovement();
-                break;
-            }
-
-            decimal speed = Math.Abs(e.Value) / MaxAxisMovement;
-            var direction = e.Value < 0 ? ServoDirection.Left : ServoDirection.Right;
-            baseServo.BeginOrContinueMovement(speed, direction);
+            servo = baseServo;
             break;
+        case GamepadJoysticks.LeftVertical:
+            servo = leftServo;
+            break;
+        case GamepadJoysticks.RightVertical:
+            servo = rightServo;
+            value *= -1;
+            break;
+        default:
+            return;
     }
+    
+    if (value == 0)
+    {
+        servo.EndMovement();
+    }
+
+    decimal speed = Math.Abs(value) / MaxAxisMovement;
+    var direction = value < 0 ? ServoDirection.Left : ServoDirection.Right;
+    servo.BeginOrContinueMovement(speed, direction);
 };
 
 Console.ReadLine();
